@@ -116,7 +116,7 @@
 		geometry = new THREE.PlaneGeometry( 5000, 5000, 100, 100 );
 		geometry.applyMatrix( new THREE.Matrix4().makeRotationX( - Math.PI / 2 ) );
 
-		var texture = new THREE.ImageUtils.loadTexture("img/cc/moon_wiki.jpg");
+		var texture = new THREE.ImageUtils.loadTexture("img/cc/moon.jpg");
 		var material = new THREE.MeshBasicMaterial( {map:texture} );
 
 		mesh = new THREE.Mesh( geometry, material );
@@ -128,12 +128,12 @@
 		var boxTexture1 = new THREE.ImageUtils.loadTexture("img/cc/block1.jpg");
 		var boxTexture2 = new THREE.ImageUtils.loadTexture("img/cc/block2.jpg");
 		var boxTexture3 = new THREE.ImageUtils.loadTexture("img/cc/block3.jpg");
-		var boxTexture3 = new THREE.ImageUtils.loadTexture("img/cc/block5.jpg");
+		var boxTexture4 = new THREE.ImageUtils.loadTexture("img/cc/block4.jpg");
 		var boxMaterial1 = new THREE.MeshBasicMaterial( {map: boxTexture1, reflectivity: 0.8} );
 		var boxMaterial2 = new THREE.MeshBasicMaterial( {map: boxTexture2, reflectivity: 0.8} );
 		var boxMaterial3 = new THREE.MeshBasicMaterial( {map: boxTexture3, reflectivity: 0.8} );
-		var boxMaterial5 = new THREE.MeshBasicMaterial( {map: boxTexture3, reflectivity: 0.8} );
-		var items = [boxMaterial1 ,boxMaterial2, boxMaterial3, boxMaterial5]
+		var boxMaterial4 = new THREE.MeshBasicMaterial( {map: boxTexture4, reflectivity: 0.8} );
+		var items = [boxMaterial1 ,boxMaterial2, boxMaterial3, boxMaterial4]
 		var boxZ;
 		for ( var i = 0; i < 1000; i ++ ) {
 
@@ -158,7 +158,7 @@
 		var pwd = window.location.href.substring(0, window.location.href.indexOf('/'));
 		var sky = new THREE.SphereGeometry(6000, 80, 80); // radius, widthSegments, heightSegments
 		var uniforms = {
-		  texture: { type: 't', value: THREE.ImageUtils.loadTexture(pwd + 'img/cc/amazon3.jpg') }
+		  texture: { type: 't', value: THREE.ImageUtils.loadTexture(pwd + 'img/cc/amazon2.jpg') }
 		};
 
 		var material = new THREE.ShaderMaterial( {
