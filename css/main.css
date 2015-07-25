@@ -107,7 +107,7 @@ body {
 
 }
 
-#minutes, #seconds, #break {
+.timertext {
     font-family: 'VT323' ;
     font-size: 30px;
     margin-left: 20px;
@@ -120,10 +120,9 @@ body {
 #timer {
     font-family: 'VT323' ;
     position: absolute;
-    bottom:0px;
+    bottom:5px;
     left:0px;
     width:100%;
-
 }
 
 

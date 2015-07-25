@@ -258,7 +258,7 @@
 			if (leftRay.intersectObjects(objects).length) { lockMoveLeft = true; }
 			if (rightRay.intersectObjects(objects).length) { lockMoveRight = true; }
 			if (forwardRay.intersectObjects(objects).length) { lockMoveForward = true; }
-			if (rightRay.intersectObjects(objects).length) { lockMoveBackward = true; }
+			if (backRay.intersectObjects(objects).length) { lockMoveBackward = true; }
 
 			// If you're standing on top of an object
 			if (downRay.intersectObjects(objects).length) {

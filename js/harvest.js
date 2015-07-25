@@ -1,4 +1,7 @@
 
+
+
+
 	var camera, scene, renderer;
 	var geometry, material, mesh;
 	var controls;
@@ -41,6 +44,8 @@
 	var lockMoveRight = false;
 	var lockMoveBackward = false;
 
+	var timer;
+
 	init();
 	animate();
 
@@ -49,6 +54,14 @@
 
 
 	function init() {
+
+		var sec = 0;
+		function pad ( val ) { return val > 9 ? val : "0" + val; }
+
+		timer = setInterval( function(){
+			$("#seconds").html(pad(++sec%60));
+			$("#minutes").html(pad(parseInt(sec/60,10)));
+		}, 1000);
 
 		camera = new THREE.PerspectiveCamera( 80, window.innerWidth / window.innerHeight, 1, 8000 );
 
@@ -103,18 +116,20 @@
 		}
 
 		// RayCaster
-		downRay = new THREE.Raycaster( new THREE.Vector3(), new THREE.Vector3( 0, - 1, 0 ), 0, 10 );
-		upRay = new THREE.Raycaster( new THREE.Vector3(), new THREE.Vector3( 0, 1, 0 ), 0, 14 );
-		forwardRay = new THREE.Raycaster( new THREE.Vector3(), new THREE.Vector3(0, 0, -1), 0, 15 );
-		backRaycaster = new THREE.Raycaster( new THREE.Vector3(), new THREE.Vector3(), 0, 15 );
-		leftRay = new THREE.Raycaster( new THREE.Vector3(), new THREE.Vector3(), 0, 15 );
-		rightRay = new THREE.Raycaster( new THREE.Vector3(), new THREE.Vector3(), 0, 15 );
-		rStrafeRay = new THREE.Raycaster( new THREE.Vector3(), new THREE.Vector3(), 0, 30 );
-		lStrafeRay = new THREE.Raycaster( new THREE.Vector3(), new THREE.Vector3(), 0, 30 );
+		downwardsRaycaster = new THREE.Raycaster( new THREE.Vector3(), new THREE.Vector3( 0, - 1, 0 ), 0, 10 );
+		upwardsRaycaster = new THREE.Raycaster( new THREE.Vector3(), new THREE.Vector3( 0, 1, 0 ), 0, 14 );
+		forwardsRaycaster = new THREE.Raycaster( new THREE.Vector3(), new THREE.Vector3(0, 0, -1), 0, 15 );
+		backwardsRaycaster = new THREE.Raycaster( new THREE.Vector3(), new THREE.Vector3(), 0, 15 );
+		leftRaycaster = new THREE.Raycaster( new THREE.Vector3(), new THREE.Vector3(), 0, 15 );
+		rightRaycaster = new THREE.Raycaster( new THREE.Vector3(), new THREE.Vector3(), 0, 15 );
+		rightStrafeRaycaster = new THREE.Raycaster( new THREE.Vector3(), new THREE.Vector3(), 0, 30 );
+		leftStrafeRaycaster = new THREE.Raycaster( new THREE.Vector3(), new THREE.Vector3(), 0, 30 );
+
 
 		// Floor
-		geometry = new THREE.PlaneGeometry( 5000, 5000, 100, 100 );
-		geometry.applyMatrix( new THREE.Matrix4().makeRotationX( - Math.PI / 2 ) );
+		var height = 6000
+		geometry = new THREE.SphereGeometry(height, 8, 6, 0, (Math.PI * 2), 0, 0.5);
+		geometry.applyMatrix( new THREE.Matrix4().makeTranslation(0, -height, 0) );
 
 		var texture = new THREE.ImageUtils.loadTexture("img/cc/moon.jpg");
 		var material = new THREE.MeshBasicMaterial( {map:texture} );
@@ -158,7 +173,7 @@
 		var pwd = window.location.href.substring(0, window.location.href.indexOf('/'));
 		var sky = new THREE.SphereGeometry(6000, 80, 80); // radius, widthSegments, heightSegments
 		var uniforms = {
-		  texture: { type: 't', value: THREE.ImageUtils.loadTexture(pwd + 'img/cc/amazon2.jpg') }
+		  texture: { type: 't', value: THREE.ImageUtils.loadTexture(pwd + 'img/cc/galaxy.jpg') }
 		};
 
 		var material = new THREE.ShaderMaterial( {
@@ -218,56 +233,78 @@
 
 			var time = performance.now();
 
-			// Is slow mo?
+			// Is Walking?
 			var delta = (isSlowMo) ? ( time - prevTime ) / slowMo : ( time - prevTime ) / speed;
+			//console.log(speed)
 
 			// Velocities
 			velocity.x -= velocity.x * 8.0 * delta; // Left and right
 			velocity.z -= velocity.z * 8.0 * delta; // Forward and back
-			velocity.y -= (isSlowMo) ?  11 * mass * delta : 9 * mass * delta;  // Up and Down
+			velocity.y -= (isSlowMo) ?  9.8 * mass * delta : 5.5 * mass * delta;  // Up and Down
 
-			// Reset movement locks
 			lockMoveForward = false;
 			lockMoveBackward = false;
 			lockMoveLeft = false;
 			lockMoveRight = false;
 
-			// Get the camera direction and the players position
-			camDir = camera.getWorldDirection().clone();
-			camDir.setX(1);
-			playersPosition = controls.getObject().position.clone();
-
-			upRay.ray.origin.copy(playersPosition);
-			downRay.ray.origin.copy(playersPosition);
-
-			forwardRay.ray.set(playersPosition, camDir);
-			backRaycaster.ray.set(playersPosition, camDir.negate());
-			leftRay.ray.set(playersPosition, camDir.applyMatrix4( new THREE.Matrix4().makeRotationY(- (Math.PI / 2) )));
-			rightRay.ray.set(playersPosition, camDir.applyMatrix4( new THREE.Matrix4().makeRotationY( Math.PI )));
-			rStrafeRay.ray.set(playersPosition, camDir.applyMatrix4( new THREE.Matrix4().makeRotationY(  (Math.PI / 4) ))); // Working
-			lStrafeRay.ray.set(playersPosition, camDir.applyMatrix4( new THREE.Matrix4().makeRotationY(  (Math.PI / 4) )));
-
-			if (first % 3 === 0 && moveForward == true ) {
+			camDir = camera.getWorldDirection().clone().setX(1.0);
+			if (first === 150) {
 				console.log(camDir);
 			}
-			first += 1;
+			first +=1;
+			playersPosition = controls.getObject().position.clone();
+			if (playersPosition.y > 800) {
+				console.log("BEEP");
+				$(".timertext").css("color","red");
+				clearInterval(timer);
 
-			// If you walk into an object
-			if (rStrafeRay.intersectObjects(objects).length) { lockMoveRight = true; lockMoveFoward = true; }
-			if (lStrafeRay.intersectObjects(objects).length) { lockMoveLeft = true; lockMoveFoward = true; }
-			if (leftRay.intersectObjects(objects).length) { lockMoveLeft = true; }
-			if (rightRay.intersectObjects(objects).length) { lockMoveRight = true; }
-			if (forwardRay.intersectObjects(objects).length) { lockMoveForward = true; }
-			if (rightRay.intersectObjects(objects).length) { lockMoveBackward = true; }
+			  }
+			upwardsRaycaster.ray.origin.copy(playersPosition);
+			downwardsRaycaster.ray.origin.copy(playersPosition);
+			forwardsRaycaster.ray.set(playersPosition, camDir);
+			backwardsRaycaster.ray.set(playersPosition, camDir.negate());
+			leftRaycaster.ray.set(playersPosition, camDir.applyMatrix4( new THREE.Matrix4().makeRotationY(- (Math.PI / 2) )));
+			rightRaycaster.ray.set(playersPosition, camDir.applyMatrix4( new THREE.Matrix4().makeRotationY( Math.PI )));
+			rightStrafeRaycaster.ray.set(playersPosition, camDir.applyMatrix4( new THREE.Matrix4().makeRotationY(  (Math.PI / 4) ))); // Working
+			leftStrafeRaycaster.ray.set(playersPosition, camDir.applyMatrix4( new THREE.Matrix4().makeRotationY(  (Math.PI / 4) )));
 
-			// If you're standing on top of an object
-			if (downRay.intersectObjects(objects).length) {
+			downwardsIntersection = downwardsRaycaster.intersectObjects( objects );
+			upwardsIntersection = upwardsRaycaster.intersectObjects( objects );
+			forwardsIntersection = forwardsRaycaster.intersectObjects( objects );
+			backwardsIntersection = backwardsRaycaster.intersectObjects( objects );
+			leftIntersection = leftRaycaster.intersectObjects( objects );
+			rightIntersection = rightRaycaster.intersectObjects( objects );
+			rightStrafeIntersection = rightStrafeRaycaster.intersectObjects( objects );
+			leftStrafeIntersection = leftStrafeRaycaster.intersectObjects( objects );
+
+			isRightStafeOfObject = rightStrafeIntersection.length > 0;
+			if (isRightStafeOfObject) { lockMoveRight = true; lockMoveFoward = true; }
+
+			isLeftStafeOfObject = leftStrafeIntersection.length > 0;
+			if (isLeftStafeOfObject) { lockMoveLeft = true; lockMoveFoward = true; }
+
+			isLeftOfObject = leftIntersection.length > 0;
+			if (isLeftOfObject) { lockMoveLeft = true; }
+
+			isRightOfObject = rightIntersection.length > 0;
+			if (isRightOfObject) { lockMoveRight = true; }
+
+			isInfrontObject = forwardsIntersection.length > 0;
+			if (isInfrontObject) { lockMoveForward = true; } //console.log("inFront")}
+
+			isBehindObject = backwardsIntersection.length > 0;
+			if (isBehindObject) { lockMoveBackward = true; } //console.log("behind")}
+
+			isOnObject = downwardsIntersection.length > 0;
+			if ( isOnObject === true ) {
 				velocity.y = Math.max( 0, velocity.y );
 				jumps = 0;
 				canJump = true;
 			}
+
 			// If your head hits an object, turn your mass up to make you fall back to earth
-			if ( upRay.intersectObjects(objects).length) { mass = 300; }
+			isBelowObject = upwardsIntersection.length > 0;
+			if ( isBelowObject === true ) { mass = 300; }
 			else { mass = 100; }
 
 			// Movements
@@ -282,14 +319,15 @@
 			controls.getObject().translateY( velocity.y * delta );
 			controls.getObject().translateZ( velocity.z * delta );
 
-			// Player is on the ground
-			isOnGround = controls.getObject().position.y < 10;
+			// Is on ground
+			var isOnGround = controls.getObject().position.y < 10;
 			if ( isOnGround ) {
 				velocity.y = 0;
 				controls.getObject().position.y = 10;
 				jumps = 0;
 				canJump = true;
 			}
+
 
 			prevTime = time;
 
