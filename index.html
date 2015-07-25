@@ -1,0 +1,61 @@
+<!doctype html>
+<html class="no-js" lang="">
+    <head>
+        <meta charset="utf-8">
+        <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+        <title></title>
+        <meta name="description" content="">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <link href='http://fonts.googleapis.com/css?family=VT323' rel='stylesheet' type='text/css'>
+        <link rel="stylesheet" href="css/normalize.min.css">
+        <link rel="stylesheet" href="css/main.css">
+
+
+    </head>
+    <body>
+        <div id="blocker">
+			<div id="instructions">
+				<span style="font-size:40px">Click to play</span>
+				<br />
+				(W, A, S, D = Move, SPACE = Jump, MOUSE = Look around)
+			</div>
+		</div>
+        <div id="timer">
+            <span id="minutes"></span>
+            <span id="break">:</span>
+            <span id="seconds"></span>
+        </div>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r71/three.min.js"></script>
+        <script type="application/x-glsl" id="sky-vertex">
+            varying vec2 vUV;
+
+            void main() {
+              vUV = uv;
+              vec4 pos = vec4(position, 1.0);
+              gl_Position = projectionMatrix * modelViewMatrix * pos;
+            }
+        </script>
+        <script type="application/x-glsl" id="sky-fragment">
+            uniform sampler2D texture;
+            varying vec2 vUV;
+
+            void main() {
+              vec4 sample = texture2D(texture, vUV);
+              gl_FragColor = vec4(sample.xyz, sample.w);
+            }
+        </script>
+        <script src="js/vendor/threejs/controls/PointerLockControls.js"></script>
+        <script src="js/vendor/threejs/sky/skyshader.js"></script>
+        <script src="js/vendor/jquery-1.11.2.min.js"></script>
+        <script>var sec = 0;
+                function pad ( val ) { return val > 9 ? val : "0" + val; }
+                setInterval( function(){
+                    $("#seconds").html(pad(++sec%60));
+                    $("#minutes").html(pad(parseInt(sec/60,10)));
+                }, 1000);
+        </script>
+        <script src="js/vendor/modernizr-2.8.3.min.js"></script>
+        <script src="js/pointerlock.js"></script>
+        <script src="js/game4.js"></script>
+    </body>
+</html>
