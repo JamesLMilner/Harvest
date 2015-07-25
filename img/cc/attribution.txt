@@ -8,22 +8,8 @@ Milkyway Panorama
 Wikipedia - Public Domain
 https://commons.wikimedia.org/wiki/File:ESO_-_Milky_Way.jpg
 
-block1.jpg
-Author: Georges "TRaK" Grondin
+
+Blocks 1-4
+Author: rubberduck
 Public Domain
-http://opengameart.org/node/7182
-
-block2.jpg
-Author: p0ss
-CC-BY 3.0
-http://opengameart.org/node/9077
-
-block3.jpg
-Author: Crack.com
-Public Domain	
-http://opengameart.org/node/7392
-
-block4.jpg
-Author: Georges "TRaK" Grondin
-GPL 2.0
-http://opengameart.org/node/7167
+http://opengameart.org/content/free-metal-texture-creation-set-03ode/7167

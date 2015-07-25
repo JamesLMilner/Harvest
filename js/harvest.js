@@ -150,13 +150,13 @@
 		var boxMaterial4 = new THREE.MeshBasicMaterial( {map: boxTexture4, reflectivity: 0.8} );
 		var items = [boxMaterial1 ,boxMaterial2, boxMaterial3, boxMaterial4]
 		var boxZ;
-		for ( var i = 0; i < 1000; i ++ ) {
+		for ( var i = 0; i < 850; i ++ ) {
 
 			//material = new THREE.MeshBasicMaterial( { specular: 0xffffff, shading: THREE.FlatShading, vertexColors: THREE.VertexColors } );
 			items[Math.floor(Math.random()*items.length)];
 			var boxmesh = new THREE.Mesh( boxGeometry, items[Math.floor(Math.random()*items.length)] );
 
-			boxZ = 40
+			boxZ = 70;
 			boxmesh.position.x = Math.floor( Math.random() * 20 - 10 ) * 20;
 			boxmesh.position.y = Math.floor( Math.random() * 20 ) * boxZ + 10;
 			boxmesh.position.z = Math.floor( Math.random() * 20 - 10 ) * 20;
