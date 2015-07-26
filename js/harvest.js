@@ -26,7 +26,7 @@
 	var isSlowMo = false;
 	var mass = 100;
 	var lightIntensity = 0.15;
-	var fog = 400 // Higher = less fog
+	var fog = 700 // Higher = less fog
 	var jumpFactor = 120;
 	var jumps = 0;
 	var slowMo = 4000; // Higher = slower
@@ -131,7 +131,7 @@
 		geometry = new THREE.SphereGeometry(height, 8, 6, 0, (Math.PI * 2), 0, 0.5);
 		geometry.applyMatrix( new THREE.Matrix4().makeTranslation(0, -height, 0) );
 
-		var texture = new THREE.ImageUtils.loadTexture("img/cc/moon.jpg");
+		var texture = new THREE.ImageUtils.loadTexture("img/cc/moon2.jpg");
 		var material = new THREE.MeshBasicMaterial( {map:texture} );
 
 		mesh = new THREE.Mesh( geometry, material );
@@ -173,7 +173,7 @@
 		var pwd = window.location.href.substring(0, window.location.href.indexOf('/'));
 		var sky = new THREE.SphereGeometry(6000, 80, 80); // radius, widthSegments, heightSegments
 		var uniforms = {
-		  texture: { type: 't', value: THREE.ImageUtils.loadTexture(pwd + 'img/cc/galaxy.jpg') }
+		  texture: { type: 't', value: THREE.ImageUtils.loadTexture(pwd + 'img/cc/galaxy3.jpg') }
 		};
 
 		var material = new THREE.ShaderMaterial( {
@@ -253,7 +253,7 @@
 			}
 			first +=1;
 			playersPosition = controls.getObject().position.clone();
-			if (playersPosition.y > 800) {
+			if (playersPosition.y > 1340) {
 				console.log("BEEP");
 				$(".timertext").css("color","red");
 				clearInterval(timer);
