@@ -102,11 +102,13 @@
 				case 32: // space
 					var doubleJump = (!canJump && jumps === 1);
 					if ( canJump === true && isKeyDown ) {
+						jumpEvent = 1
 						velocity.y += jumpFactor * 2.25;
 						canJump = false;
 						jumps = 1;
 					}
 					if ( doubleJump === true && isKeyDown ) {
+						jumpEvent = 2;
 					 	velocity.y += jumpFactor * 1.75;
 						jumps = 2;
 					}
@@ -231,10 +233,10 @@
 
 		if ( controlsEnabled ) {
 
-			var time = performance.now();
+			time = performance.now();
 
 			// Is Walking?
-			var delta = (isSlowMo) ? ( time - prevTime ) / slowMo : ( time - prevTime ) / speed;
+			delta = (isSlowMo) ? ( time - prevTime ) / slowMo : ( time - prevTime ) / speed;
 			//console.log(speed)
 
 			// Velocities
@@ -247,18 +249,10 @@
 			lockMoveLeft = false;
 			lockMoveRight = false;
 
-			camDir = camera.getWorldDirection().clone().setX(1.0);
-			if (first === 150) {
-				console.log(camDir);
-			}
-			first +=1;
-			playersPosition = controls.getObject().position.clone();
-			if (playersPosition.y > 1340) {
-				console.log("BEEP");
-				$(".timertext").css("color","red");
-				clearInterval(timer);
 
-			  }
+			camDir = controls.getObject().getWorldDirection().negate(); //
+			playersPosition = controls.getObject().position.clone();
+
 			upwardsRaycaster.ray.origin.copy(playersPosition);
 			downwardsRaycaster.ray.origin.copy(playersPosition);
 			forwardsRaycaster.ray.set(playersPosition, camDir);
@@ -290,7 +284,7 @@
 			if (isRightOfObject) { lockMoveRight = true; }
 
 			isInfrontObject = forwardsIntersection.length > 0;
-			if (isInfrontObject) { lockMoveForward = true; } //console.log("inFront")}
+			if (isInfrontObject) { lockMoveForward = true; console.log("inFront", camDir, playersPosition)}
 
 			isBehindObject = backwardsIntersection.length > 0;
 			if (isBehindObject) { lockMoveBackward = true; } //console.log("behind")}
@@ -304,7 +298,7 @@
 
 			// If your head hits an object, turn your mass up to make you fall back to earth
 			isBelowObject = upwardsIntersection.length > 0;
-			if ( isBelowObject === true ) { mass = 300; }
+			if ( isBelowObject === true ) { mass = 600; }
 			else { mass = 100; }
 
 			// Movements
@@ -328,6 +322,12 @@
 				canJump = true;
 			}
 
+			//Check if player has completed the game
+			if (playersPosition.y > 1350) {
+				console.log("Completed");
+				$(".timertext").css("color","red");
+				clearInterval(timer);
+			}
 
 			prevTime = time;
 
