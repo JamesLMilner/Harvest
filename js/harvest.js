@@ -25,14 +25,14 @@
 	var moveRight = false;
 	var isSlowMo = false;
 	var mass = 100;
+	var originalMass = mass;
 	var lightIntensity = 0.15;
 	var fog = 700 // Higher = less fog
 	var jumpFactor = 120;
 	var jumps = 0;
 	var slowMo = 4000; // Higher = slower
 	var speed = 900;
-	var canJump;
-	var doubleJump;
+	var firstJump;
 	var rotationMatrix;
 
 	var isBehindObject;
@@ -63,7 +63,7 @@
 			$("#minutes").html(pad(parseInt(sec/60,10)));
 		}, 1000);
 
-		camera = new THREE.PerspectiveCamera( 80, window.innerWidth / window.innerHeight, 1, 8000 );
+		camera = new THREE.PerspectiveCamera( 80, window.innerWidth / window.innerHeight, 1, 9000 );
 
 		scene = new THREE.Scene();
 		scene.fog = new THREE.Fog( 0xffffff, 0, fog + 1000 );
@@ -100,26 +100,20 @@
 					break;
 
 				case 32: // space
-					var doubleJump = (!canJump && jumps === 1);
-					if ( canJump === true && isKeyDown ) {
-						jumpEvent = 1
-						velocity.y += jumpFactor * 2.25;
-						canJump = false;
+					if (jumps === 0 && !isKeyDown) {
+						console.log("first")
 						jumps = 1;
 					}
-					if ( doubleJump === true && isKeyDown ) {
-						jumpEvent = 2;
-					 	velocity.y += jumpFactor * 1.75;
+					if (jumps === 1 && !isKeyDown) {
 						jumps = 2;
 					}
 					break;
-
 			}
 		}
 
 		// RayCaster
-		downwardsRaycaster = new THREE.Raycaster( new THREE.Vector3(), new THREE.Vector3( 0, - 1, 0 ), 0, 10 );
-		upwardsRaycaster = new THREE.Raycaster( new THREE.Vector3(), new THREE.Vector3( 0, 1, 0 ), 0, 14 );
+		downwardsRaycaster = new THREE.Raycaster( new THREE.Vector3(), new THREE.Vector3( 0, - 1, 0 ), 0, 20 );
+		upwardsRaycaster = new THREE.Raycaster( new THREE.Vector3(), new THREE.Vector3( 0, 1, 0 ), 0, 20 );
 		forwardsRaycaster = new THREE.Raycaster( new THREE.Vector3(), new THREE.Vector3(0, 0, -1), 0, 15 );
 		backwardsRaycaster = new THREE.Raycaster( new THREE.Vector3(), new THREE.Vector3(), 0, 15 );
 		leftRaycaster = new THREE.Raycaster( new THREE.Vector3(), new THREE.Vector3(), 0, 15 );
@@ -127,20 +121,19 @@
 		rightStrafeRaycaster = new THREE.Raycaster( new THREE.Vector3(), new THREE.Vector3(), 0, 30 );
 		leftStrafeRaycaster = new THREE.Raycaster( new THREE.Vector3(), new THREE.Vector3(), 0, 30 );
 
-
 		// Floor
-		var height = 6000
-		geometry = new THREE.SphereGeometry(height, 8, 6, 0, (Math.PI * 2), 0, 0.5);
+		var height = 7000
+		geometry = new THREE.SphereGeometry(height, 10, 6, 0, (Math.PI * 2), 0, 0.8);
 		geometry.applyMatrix( new THREE.Matrix4().makeTranslation(0, -height, 0) );
 
 		var texture = new THREE.ImageUtils.loadTexture("img/cc/moon2.jpg");
 		var material = new THREE.MeshBasicMaterial( {map:texture} );
 
 		mesh = new THREE.Mesh( geometry, material );
+		objects.push( mesh );
 		scene.add( mesh );
 
-		// objects
-
+		// Boxes
 		var boxGeometry = new THREE.BoxGeometry( 20, 20, 20 );
 		var boxTexture1 = new THREE.ImageUtils.loadTexture("img/cc/block1.jpg");
 		var boxTexture2 = new THREE.ImageUtils.loadTexture("img/cc/block2.jpg");
@@ -249,7 +242,6 @@
 			lockMoveLeft = false;
 			lockMoveRight = false;
 
-
 			camDir = controls.getObject().getWorldDirection().negate(); //
 			playersPosition = controls.getObject().position.clone();
 
@@ -289,17 +281,32 @@
 			isBehindObject = backwardsIntersection.length > 0;
 			if (isBehindObject) { lockMoveBackward = true; } //console.log("behind")}
 
+			// If your head hits an object, turn your mass up to make you fall back to earth
+			isBelowObject = upwardsIntersection.length > 0;
+			if ( isBelowObject === true ) { mass = 600; }
+			else { mass = originalMass; }
+
+			// Jumping - must come after isBelowObject but before isOnObject
+			if (jumps === 1 && firstJump && !isBelowObject) {
+				velocity.y += jumpFactor * 2.50;
+				firstJump = false;
+			}
+			if (jumps === 2 && !firstJump && !isBelowObject) {
+				velocity.y += jumpFactor * 2.00;
+				jumps = 3;
+			}
+
 			isOnObject = downwardsIntersection.length > 0;
 			if ( isOnObject === true ) {
 				velocity.y = Math.max( 0, velocity.y );
 				jumps = 0;
-				canJump = true;
+				canSingleJump = true;
+				if (controls.getObject().position.y < 10) {
+					//controls.getObject().position.y += 0.00000001;
+				}
 			}
 
-			// If your head hits an object, turn your mass up to make you fall back to earth
-			isBelowObject = upwardsIntersection.length > 0;
-			if ( isBelowObject === true ) { mass = 600; }
-			else { mass = 100; }
+
 
 			// Movements
 			if ( moveForward && !isSlowMo && !lockMoveForward) velocity.z -= 400.0 * delta;
@@ -313,18 +320,19 @@
 			controls.getObject().translateY( velocity.y * delta );
 			controls.getObject().translateZ( velocity.z * delta );
 
+
 			// Is on ground
-			var isOnGround = controls.getObject().position.y < 10;
-			if ( isOnGround ) {
-				velocity.y = 0;
-				controls.getObject().position.y = 10;
-				jumps = 0;
-				canJump = true;
-			}
+			// isOnGround = controls.getObject().position.y == downWards.position.y ;
+			// if ( isOnGround ) {
+			// 	velocity.y = 0;
+			// 	//controls.getObject().position.y = 10;
+			// 	jumps = 0;
+			// 	canSingleJump = true;
+			// }
 
 			//Check if player has completed the game
 			if (playersPosition.y > 1350) {
-				console.log("Completed");
+				//console.log("Completed");
 				$(".timertext").css("color","red");
 				clearInterval(timer);
 			}
