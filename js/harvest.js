@@ -5,7 +5,7 @@
 	var camera, scene, renderer;
 	var geometry, material, mesh;
 	var controls;
-
+	var boxes = [];
 	var objects = [];
 
 	var raycaster;
@@ -15,6 +15,7 @@
 	var forwardRay;
 	var leftRay;
 	var rightRay;
+	var WON = false;
 
 	var controlsEnabled = false;
 	var time;
@@ -55,83 +56,42 @@
 
 	function init() {
 
-		var sec = 0;
-		function pad ( val ) { return val > 9 ? val : "0" + val; }
-
-		timer = setInterval( function(){
-			$("#seconds").html(pad(++sec%60));
-			$("#minutes").html(pad(parseInt(sec/60,10)));
-		}, 1000);
+		initialiseTimer();
+		eventHandlers();
 
 		camera = new THREE.PerspectiveCamera( 80, window.innerWidth / window.innerHeight, 1, 9000 );
 
 		scene = new THREE.Scene();
 		scene.fog = new THREE.Fog( 0xffffff, 0, fog + 1000 );
 
-		// var light = new THREE.HemisphereLight( 0xeeeeff, 0x777788, lightIntensity );
-		// light.position.set( 0.5, 1, 0.75 );
-		// scene.add( light );
-
 		controls = new THREE.PointerLockControls( camera );
 		scene.add( controls.getObject() );
 
-		// HANDLE KEY INTERACTION
-		function handleKeyInteraction(keyCode, boolean) {
-			var isKeyDown = boolean;
-			switch(keyCode) {
-				case 38: // up
-				case 87: // w
-					moveForward = boolean;
-					break;
-
-				case 40: // down
-				case 83: // s
-					moveBackward = boolean;
-					break;
-
-				case 37: // left
-				case 65: // a
-					moveLeft = boolean;
-					break;
-
-				case 39: // right
-				case 68: // d
-					moveRight = boolean;
-					break;
-
-				case 32: // space
-					if (jumps === 0 && !isKeyDown) {
-						console.log("first")
-						jumps = 1;
-					}
-					if (jumps === 1 && !isKeyDown) {
-						jumps = 2;
-					}
-					break;
-			}
-		}
-
 		// RayCaster
-		downwardsRaycaster = new THREE.Raycaster( new THREE.Vector3(), new THREE.Vector3( 0, - 1, 0 ), 0, 20 );
-		upwardsRaycaster = new THREE.Raycaster( new THREE.Vector3(), new THREE.Vector3( 0, 1, 0 ), 0, 20 );
-		forwardsRaycaster = new THREE.Raycaster( new THREE.Vector3(), new THREE.Vector3(0, 0, -1), 0, 15 );
-		backwardsRaycaster = new THREE.Raycaster( new THREE.Vector3(), new THREE.Vector3(), 0, 15 );
-		leftRaycaster = new THREE.Raycaster( new THREE.Vector3(), new THREE.Vector3(), 0, 15 );
-		rightRaycaster = new THREE.Raycaster( new THREE.Vector3(), new THREE.Vector3(), 0, 15 );
-		rightStrafeRaycaster = new THREE.Raycaster( new THREE.Vector3(), new THREE.Vector3(), 0, 30 );
-		leftStrafeRaycaster = new THREE.Raycaster( new THREE.Vector3(), new THREE.Vector3(), 0, 30 );
+		raycasters = {
+
+			down : new THREE.Raycaster( new THREE.Vector3(), new THREE.Vector3( 0, - 1, 0 ), 0, 20 ),
+			up : new THREE.Raycaster( new THREE.Vector3(), new THREE.Vector3( 0, 1, 0 ), 0, 20 ),
+			forward : new THREE.Raycaster( new THREE.Vector3(), new THREE.Vector3(0, 0, -1), 0, 15 ),
+			backward : new THREE.Raycaster( new THREE.Vector3(), new THREE.Vector3(), 0, 15 ),
+			left : new THREE.Raycaster( new THREE.Vector3(), new THREE.Vector3(), 0, 15 ),
+			right : new THREE.Raycaster( new THREE.Vector3(), new THREE.Vector3(), 0, 15 ),
+			rightStrafe : new THREE.Raycaster( new THREE.Vector3(), new THREE.Vector3(), 0, 30 ),
+			leftStrafe : new THREE.Raycaster( new THREE.Vector3(), new THREE.Vector3(), 0, 30 ),
+
+		}
 
 		// Floor
 		var height = 7000
 		geometry = new THREE.SphereGeometry(height, 10, 6, 0, (Math.PI * 2), 0, 0.8);
 		geometry.applyMatrix( new THREE.Matrix4().makeTranslation(0, -height, 0) );
 
-		var texture = new THREE.ImageUtils.loadTexture("img/cc/moon2.jpg");
+		var texture = new THREE.ImageUtils.loadTexture("img/cc/moon.jpg");
 		var material = new THREE.MeshBasicMaterial( {map:texture} );
 
-		mesh = new THREE.Mesh( geometry, material );
-		objects.push( mesh );
-		scene.add( mesh );
+		floorMesh = new THREE.Mesh( geometry, material );
+		objects.push( floorMesh );
+		scene.add( floorMesh  );
 
 		// Boxes
 		var boxGeometry = new THREE.BoxGeometry( 20, 20, 20 );
@@ -155,29 +115,27 @@
 			boxmesh.position.x = Math.floor( Math.random() * 20 - 10 ) * 20;
 			boxmesh.position.y = Math.floor( Math.random() * 20 ) * boxZ + 10;
 			boxmesh.position.z = Math.floor( Math.random() * 20 - 10 ) * 20;
-			scene.add( boxmesh );
 
-			//material.color.setHSL( Math.random() * 0.2 + 0.5, 0.75, Math.random() * 0.25 + 0.75 );
-
+			boxes.push( boxmesh );
 			objects.push( boxmesh );
-
+			scene.add( boxmesh );
 		}
 
 		// Sky
-
+		var ranTexture = Math.floor(Math.random() * 3) + 1
 		var pwd = window.location.href.substring(0, window.location.href.indexOf('/'));
-		var sky = new THREE.SphereGeometry(6000, 80, 80); // radius, widthSegments, heightSegments
+		var sky = new THREE.SphereGeometry(8000, 32, 32); // radius, widthSegments, heightSegments
 		var uniforms = {
-		  texture: { type: 't', value: THREE.ImageUtils.loadTexture(pwd + 'img/cc/galaxy3.jpg') }
+		  texture: { type: 't', value: THREE.ImageUtils.loadTexture(pwd + 'img/cc/galaxy' + ranTexture + '.jpg') }
 		};
 
-		var material = new THREE.ShaderMaterial( {
-		  uniforms:       uniforms,
-		  vertexShader:   document.getElementById('sky-vertex').textContent,
-		  fragmentShader: document.getElementById('sky-fragment').textContent
+		var skyMaterial = new THREE.ShaderMaterial( {
+			uniforms:       uniforms,
+			vertexShader:   document.getElementById('sky-vertex').textContent,
+			fragmentShader: document.getElementById('sky-fragment').textContent
 		});
 
-		skyBox = new THREE.Mesh(sky, material);
+		skyBox = new THREE.Mesh(sky, skyMaterial);
 		skyBox.scale.set(-1, 1, 1);
 		skyBox.eulerOrder = 'XZY';
 		skyBox.renderDepth = 1000.0;
@@ -188,38 +146,9 @@
 		renderer.setPixelRatio( window.devicePixelRatio );
 		renderer.setSize( window.innerWidth, window.innerHeight );
 		document.body.appendChild( renderer.domElement );
-		console.log(renderer.domElement)
-
-		$("body").mousedown(function(event) {
-			console.log(event);
-			if (event.which == 3) { speed = 400; console.log("mouseclick 2") }
-			if (event.which == 1 ) { isSlowMo = true; }
-		});
-		$("body").mouseup(function(event) {
-			if (event.which == 3 ) { speed = 900; }
-			if (event.which == 1 ) { isSlowMo = false; }
-		});
-
-		var onKeyDown = function ( event ) { handleKeyInteraction(event.keyCode, true); };
-		var onKeyUp = function ( event ) { handleKeyInteraction(event.keyCode, false); };
-		document.addEventListener( 'keydown', onKeyDown, false );
-		document.addEventListener( 'keyup', onKeyUp, false );
-
-		// Resize Event
-		window.addEventListener( 'resize', onWindowResize, false );
 
 	}
 
-	function onWindowResize() {
-
-		camera.aspect = window.innerWidth / window.innerHeight;
-		camera.updateProjectionMatrix();
-
-		renderer.setSize( window.innerWidth, window.innerHeight );
-
-	}
-
-	var first = 1;
 	function animate() {
 
 		requestAnimationFrame( animate );
@@ -230,7 +159,6 @@
 
 			// Is Walking?
 			delta = (isSlowMo) ? ( time - prevTime ) / slowMo : ( time - prevTime ) / speed;
-			//console.log(speed)
 
 			// Velocities
 			velocity.x -= velocity.x * 8.0 * delta; // Left and right
@@ -245,23 +173,24 @@
 			camDir = controls.getObject().getWorldDirection().negate(); //
 			playersPosition = controls.getObject().position.clone();
 
-			upwardsRaycaster.ray.origin.copy(playersPosition);
-			downwardsRaycaster.ray.origin.copy(playersPosition);
-			forwardsRaycaster.ray.set(playersPosition, camDir);
-			backwardsRaycaster.ray.set(playersPosition, camDir.negate());
-			leftRaycaster.ray.set(playersPosition, camDir.applyMatrix4( new THREE.Matrix4().makeRotationY(- (Math.PI / 2) )));
-			rightRaycaster.ray.set(playersPosition, camDir.applyMatrix4( new THREE.Matrix4().makeRotationY( Math.PI )));
-			rightStrafeRaycaster.ray.set(playersPosition, camDir.applyMatrix4( new THREE.Matrix4().makeRotationY(  (Math.PI / 4) ))); // Working
-			leftStrafeRaycaster.ray.set(playersPosition, camDir.applyMatrix4( new THREE.Matrix4().makeRotationY(  (Math.PI / 4) )));
+			raycasters.up.ray.origin.copy(playersPosition);
+			raycasters.down.ray.origin.copy(playersPosition);
+			raycasters.forward.ray.set(playersPosition, camDir);
+			raycasters.backward.ray.set(playersPosition, camDir.negate());
+			raycasters.left.ray.set(playersPosition, camDir.applyMatrix4( new THREE.Matrix4().makeRotationY(- (Math.PI / 2) )));
+			raycasters.right.ray.set(playersPosition, camDir.applyMatrix4( new THREE.Matrix4().makeRotationY( Math.PI )));
+			raycasters.rightStrafe.ray.set(playersPosition, camDir.applyMatrix4( new THREE.Matrix4().makeRotationY(  (Math.PI / 4) ))); // Working
+			raycasters.leftStrafe.ray.set(playersPosition, camDir.applyMatrix4( new THREE.Matrix4().makeRotationY(  (Math.PI / 4) )));
 
-			downwardsIntersection = downwardsRaycaster.intersectObjects( objects );
-			upwardsIntersection = upwardsRaycaster.intersectObjects( objects );
-			forwardsIntersection = forwardsRaycaster.intersectObjects( objects );
-			backwardsIntersection = backwardsRaycaster.intersectObjects( objects );
-			leftIntersection = leftRaycaster.intersectObjects( objects );
-			rightIntersection = rightRaycaster.intersectObjects( objects );
-			rightStrafeIntersection = rightStrafeRaycaster.intersectObjects( objects );
-			leftStrafeIntersection = leftStrafeRaycaster.intersectObjects( objects );
+
+			upwardsIntersection = raycasters.up.intersectObjects( objects );
+			downwardsIntersection = raycasters.down.intersectObjects( objects );
+			forwardsIntersection = raycasters.forward.intersectObjects( objects );
+			backwardsIntersection = raycasters.backward.intersectObjects( objects );
+			leftIntersection = raycasters.left.intersectObjects( objects );
+			rightIntersection = raycasters.right.intersectObjects( objects );
+			rightStrafeIntersection = raycasters.rightStrafe.intersectObjects( objects );
+			leftStrafeIntersection = raycasters.leftStrafe.intersectObjects( objects );
 
 			isRightStafeOfObject = rightStrafeIntersection.length > 0;
 			if (isRightStafeOfObject) { lockMoveRight = true; lockMoveFoward = true; }
@@ -276,7 +205,7 @@
 			if (isRightOfObject) { lockMoveRight = true; }
 
 			isInfrontObject = forwardsIntersection.length > 0;
-			if (isInfrontObject) { lockMoveForward = true; console.log("inFront", camDir, playersPosition)}
+			if (isInfrontObject) { lockMoveForward = true; }
 
 			isBehindObject = backwardsIntersection.length > 0;
 			if (isBehindObject) { lockMoveBackward = true; } //console.log("behind")}
@@ -306,8 +235,6 @@
 				}
 			}
 
-
-
 			// Movements
 			if ( moveForward && !isSlowMo && !lockMoveForward) velocity.z -= 400.0 * delta;
 			if ( moveForward && isSlowMo && !lockMoveForward) velocity.z -= 1000.0 * delta;
@@ -320,27 +247,111 @@
 			controls.getObject().translateY( velocity.y * delta );
 			controls.getObject().translateZ( velocity.z * delta );
 
-
-			// Is on ground
-			// isOnGround = controls.getObject().position.y == downWards.position.y ;
-			// if ( isOnGround ) {
-			// 	velocity.y = 0;
-			// 	//controls.getObject().position.y = 10;
-			// 	jumps = 0;
-			// 	canSingleJump = true;
-			// }
-
 			//Check if player has completed the game
-			if (playersPosition.y > 1350) {
-				//console.log("Completed");
-				$(".timertext").css("color","red");
-				clearInterval(timer);
+			if (playersPosition.y > 1350 && !WON) {
+				gameWon();
 			}
 
 			prevTime = time;
-
 		}
-
 		renderer.render( scene, camera );
 
+	}
+
+
+	function initialiseTimer() {
+		var sec = 0;
+		function pad ( val ) { return val > 9 ? val : "0" + val; }
+
+		timer = setInterval( function(){
+			$("#seconds").html(pad(++sec%60));
+			$("#minutes").html(pad(parseInt(sec/60,10)));
+		}, 1000);
+	}
+
+	function eventHandlers() {
+
+		// Right and Left Click handlers
+		$("body").mousedown(function(event) {
+			if (event.which == 3) { speed = 400; }
+			if (event.which == 1 ) { isSlowMo = true; }
+		});
+		$("body").mouseup(function(event) {
+			if (event.which == 3 ) { speed = 900; }
+			if (event.which == 1 ) { isSlowMo = false; }
+		});
+
+		// Keyboard press handlers
+		var onKeyDown = function ( event ) { handleKeyInteraction(event.keyCode, true); };
+		var onKeyUp = function ( event ) { handleKeyInteraction(event.keyCode, false); };
+		document.addEventListener( 'keydown', onKeyDown, false );
+		document.addEventListener( 'keyup', onKeyUp, false );
+
+		// Resize Event
+		window.addEventListener( 'resize', onWindowResize, false );
+	}
+
+	// HANDLE KEY INTERACTION
+	function handleKeyInteraction(keyCode, boolean) {
+		var isKeyDown = boolean;
+		switch(keyCode) {
+			case 38: // up
+			case 87: // w
+				moveForward = boolean;
+				break;
+
+			case 40: // down
+			case 83: // s
+				moveBackward = boolean;
+				break;
+
+			case 37: // left
+			case 65: // a
+				moveLeft = boolean;
+				break;
+
+			case 39: // right
+			case 68: // d
+				moveRight = boolean;
+				break;
+
+			case 32: // space
+				if (jumps === 0 && !isKeyDown) {
+					jumps = 1;
+				}
+				if (jumps === 1 && !isKeyDown) {
+					jumps = 2;
+				}
+				break;
+		}
+	}
+
+	function onWindowResize() {
+
+		camera.aspect = window.innerWidth / window.innerHeight;
+		camera.updateProjectionMatrix();
+
+		renderer.setSize( window.innerWidth, window.innerHeight );
+
+	}
+
+
+
+	function gameWon() {
+		WON = true;
+		async.forEachOf(boxes, function(box, i, callback) {
+			var fallingMotion = 0;
+			var boxPos = box.position.y
+			for (var pos = boxPos ; pos > 0; pos -= 5) {
+				fallingMotion += 15;
+				fallingBoxes(box, pos, fallingMotion);
+			};
+		});
+		$(".timertext").css("color","red");
+		clearInterval(timer);
+	}
+
+	function fallingBoxes(cube, pos, delay) {
+		//console.log(cube,pos,delay)
+		setTimeout(function() { cube.position.setY(pos); }, delay);
 	}
