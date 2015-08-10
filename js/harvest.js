@@ -1,6 +1,11 @@
+var Harvest = (function () {
 
+  // Instance stores a reference to the Singleton
+  var instance;
 
+  function startGame() {
 
+    // Singleton
 
 	var camera, scene, renderer;
 	var geometry, material, mesh;
@@ -36,6 +41,7 @@
 	var firstJump;
 	var rotationMatrix;
 
+	var timer;
 	var isBehindObject;
 	var isInfrontObject;
 	var isOnObject;
@@ -44,8 +50,6 @@
 	var lockMoveLeft = false;
 	var lockMoveRight = false;
 	var lockMoveBackward = false;
-
-	var timer;
 
 	init();
 	animate();
@@ -58,14 +62,28 @@
 
 		initialiseTimer();
 		eventHandlers();
-
-		camera = new THREE.PerspectiveCamera( 80, window.innerWidth / window.innerHeight, 1, 9000 );
-
 		scene = new THREE.Scene();
 		scene.fog = new THREE.Fog( 0xffffff, 0, fog + 1000 );
 
-		controls = new THREE.PointerLockControls( camera );
-		scene.add( controls.getObject() );
+		// Sky
+		var ranTexture = randomTexture(4)
+		var pwd = window.location.href.substring(0, window.location.href.indexOf('/'));
+		var sky = new THREE.SphereGeometry(8000, 32, 32); // radius, widthSegments, heightSegments
+		var uniforms = {
+		  texture: { type: 't', value: THREE.ImageUtils.loadTexture(pwd + 'img/cc/galaxy' + randomTexture(3) + '.jpg') }
+		};
+
+		var skyMaterial = new THREE.ShaderMaterial( {
+			uniforms:       uniforms,
+			vertexShader:   document.getElementById('sky-vertex').textContent,
+			fragmentShader: document.getElementById('sky-fragment').textContent
+		});
+
+		skyBox = new THREE.Mesh(sky, skyMaterial);
+		skyBox.scale.set(-1, 1, 1);
+		skyBox.eulerOrder = 'XZY';
+		skyBox.renderDepth = 1000.0;
+		scene.add(skyBox);
 
 		// RayCaster
 		raycasters = {
@@ -82,11 +100,11 @@
 		}
 
 		// Floor
-		var height = 7000
-		geometry = new THREE.SphereGeometry(height, 10, 6, 0, (Math.PI * 2), 0, 0.8);
-		geometry.applyMatrix( new THREE.Matrix4().makeTranslation(0, -height, 0) );
+		var floorHeight = 7000
+		geometry = new THREE.SphereGeometry(floorHeight, 10, 6, 0, (Math.PI * 2), 0, 0.8);
+		geometry.applyMatrix( new THREE.Matrix4().makeTranslation(0, -floorHeight, 0) );
 
-		var texture = new THREE.ImageUtils.loadTexture("img/cc/moon.jpg");
+		var texture = new THREE.ImageUtils.loadTexture("img/cc/moon" + randomTexture(3)  +".jpg");
 		var material = new THREE.MeshBasicMaterial( {map:texture} );
 
 		floorMesh = new THREE.Mesh( geometry, material );
@@ -121,30 +139,16 @@
 			scene.add( boxmesh );
 		}
 
-		// Sky
-		var ranTexture = Math.floor(Math.random() * 3) + 1
-		var pwd = window.location.href.substring(0, window.location.href.indexOf('/'));
-		var sky = new THREE.SphereGeometry(8000, 32, 32); // radius, widthSegments, heightSegments
-		var uniforms = {
-		  texture: { type: 't', value: THREE.ImageUtils.loadTexture(pwd + 'img/cc/galaxy' + ranTexture + '.jpg') }
-		};
 
-		var skyMaterial = new THREE.ShaderMaterial( {
-			uniforms:       uniforms,
-			vertexShader:   document.getElementById('sky-vertex').textContent,
-			fragmentShader: document.getElementById('sky-fragment').textContent
-		});
-
-		skyBox = new THREE.Mesh(sky, skyMaterial);
-		skyBox.scale.set(-1, 1, 1);
-		skyBox.eulerOrder = 'XZY';
-		skyBox.renderDepth = 1000.0;
-		scene.add(skyBox);
+		camera = new THREE.PerspectiveCamera( 80, window.innerWidth / window.innerHeight, 1, 9000 );
+		controls = new THREE.PointerLockControls( camera );
+		scene.add( controls.getObject() );
 
 		renderer = new THREE.WebGLRenderer({ antialias: true }); //new THREE.WebGLRenderer();
 		renderer.setClearColor( 0xffffff );
 		renderer.setPixelRatio( window.devicePixelRatio );
 		renderer.setSize( window.innerWidth, window.innerHeight );
+		ScreenOverlay(controls); //
 		document.body.appendChild( renderer.domElement );
 
 	}
@@ -153,7 +157,7 @@
 
 		requestAnimationFrame( animate );
 
-		if ( controlsEnabled ) {
+		if ( controls.enabled ) {
 
 			time = performance.now();
 
@@ -165,10 +169,7 @@
 			velocity.z -= velocity.z * 8.0 * delta; // Forward and back
 			velocity.y -= (isSlowMo) ?  9.8 * mass * delta : 5.5 * mass * delta;  // Up and Down
 
-			lockMoveForward = false;
-			lockMoveBackward = false;
-			lockMoveLeft = false;
-			lockMoveRight = false;
+			unlockMovement();
 
 			camDir = controls.getObject().getWorldDirection().negate(); //
 			playersPosition = controls.getObject().position.clone();
@@ -181,7 +182,6 @@
 			raycasters.right.ray.set(playersPosition, camDir.applyMatrix4( new THREE.Matrix4().makeRotationY( Math.PI )));
 			raycasters.rightStrafe.ray.set(playersPosition, camDir.applyMatrix4( new THREE.Matrix4().makeRotationY(  (Math.PI / 4) ))); // Working
 			raycasters.leftStrafe.ray.set(playersPosition, camDir.applyMatrix4( new THREE.Matrix4().makeRotationY(  (Math.PI / 4) )));
-
 
 			upwardsIntersection = raycasters.up.intersectObjects( objects );
 			downwardsIntersection = raycasters.down.intersectObjects( objects );
@@ -258,6 +258,16 @@
 
 	}
 
+	function randomTexture(maxTextures) {
+		return Math.floor(Math.random() * maxTextures) + 1
+	}
+
+	function unlockMovement() {
+		lockMoveForward = false;
+		lockMoveBackward = false;
+		lockMoveLeft = false;
+		lockMoveRight = false;
+	}
 
 	function initialiseTimer() {
 		var sec = 0;
@@ -335,8 +345,6 @@
 
 	}
 
-
-
 	function gameWon() {
 		WON = true;
 		async.forEachOf(boxes, function(box, i, callback) {
@@ -355,3 +363,35 @@
 		//console.log(cube,pos,delay)
 		setTimeout(function() { cube.position.setY(pos); }, delay);
 	}
+
+    return {
+		// Public methods and variables
+		setFog: function (setFog) {
+			fog = setFog;
+		},
+		setJumpFactor: function (setJumpFactor) {
+			jumpFactor = setJumpFactor;
+		}
+
+    };
+
+  };
+
+  return {
+
+    // Get the Singleton instance if one exists
+    // or create one if it doesn't
+    getInstance: function () {
+
+      if ( !instance ) {
+        instance = startGame();
+      }
+
+      return instance;
+    }
+
+  };
+
+})();
+
+harvest = Harvest.getInstance();

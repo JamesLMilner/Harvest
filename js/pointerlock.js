@@ -1,9 +1,10 @@
 // http://www.html5rocks.com/en/tutorials/pointerlock/intro/
-var blocker = document.getElementById( 'blocker' );
-var instructions = document.getElementById( 'instructions' );
-var havePointerLock = 'pointerLockElement' in document || 'mozPointerLockElement' in document || 'webkitPointerLockElement' in document;
+function ScreenOverlay(controls, controlsEnabled) {
+	var blocker = document.getElementById( 'blocker' );
+	var instructions = document.getElementById( 'instructions' );
+	var havePointerLock = 'pointerLockElement' in document || 'mozPointerLockElement' in document || 'webkitPointerLockElement' in document;
 
-if ( havePointerLock ) {
+	if ( havePointerLock ) {
 
 	var element = document.body;
 
@@ -11,7 +12,6 @@ if ( havePointerLock ) {
 
 		if ( document.pointerLockElement === element || document.mozPointerLockElement === element || document.webkitPointerLockElement === element ) {
 
-			controlsEnabled = true;
 			controls.enabled = true;
 
 			blocker.style.display = 'none';
@@ -81,8 +81,9 @@ if ( havePointerLock ) {
 
 	}, false );
 
-} else {
+	} else {
 
 	instructions.innerHTML = 'Your browser doesn\'t seem to support Pointer Lock API';
 
-}
+	}
+ }
